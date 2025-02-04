@@ -1,9 +1,6 @@
 #!/usr/bin/python3
 
-# EXAMPLE:
-# ./toe.py 1 2 U 5, 2 3 R 2, 3 1 R 3, 1 2 R 3
-
-# nnoremap <F9> <cmd>w<bar>:!./toe.py 1 2 U 5, 2 3 R 2, 3 1 R 3, 1 2 R 3 <CR>
+# nnoremap <F9> <cmd>w<bar>:!./build.sh<CR>
 
 import sys
 import numpy as np
@@ -18,11 +15,12 @@ class Element:
         return f'Element(type={self.etype}, i={self.i}, u={self.u}, R={self.r})'
 
 class Node:
-    ein = []
-    eout = []
+    def __init__(self):
+        self.ein = []
+        self.eout = []
     def __str__(self):
-        sin = ", ".join([e.etype for e in ein])
-        sout = ", ".join([e.etype for e in eout])
+        sin = ", ".join([str(e) for e in self.ein])
+        sout = ", ".join([str(e) for e in self.eout])
         return f'Node(in: {sin}; out: {sout})'
 
 class Circuit:
@@ -51,8 +49,6 @@ class Circuit:
         self.elements = [None]*len(eData)
         self.nodes = [Node() for i in range(nodeCount)]
         for i, e in enumerate(eData):
-            print(self.elements)
-
             self.elements[i] = Element(etype=e[2], i=None, u=None, r=None)
             if   e[2] == 'i':
                 self.elements[i].i = e[3]
@@ -64,12 +60,54 @@ class Circuit:
                 print(f'Type "{e[2]}" is undefined in element {i+1}.')
                 exit(1)
                 
-            self.nodes[e[0]-1].ein.append(self.elements[i])
-            self.nodes[e[1]-1].eout.append(self.elements[i])
+            self.nodes[e[0]-1].ein.append(i)
+            self.nodes[e[1]-1].eout.append(i)
 
     def Solve(self): # Mooon
 
-        print(G)
+        # A * Y * AT * Un = -A * (J + Y * E)
+        # A - cons, Y - cond, J - csrc, E - vsrc
+
+        cons = np.zeros([len(self.nodes)-1, len(self.elements)])       
+        cond = np.zeros([len(self.elements), len(self.elements)])
+        csrc = np.zeros([len(self.elements), 1])
+        vsrc = np.zeros([len(self.elements), 1])
+
+        for i in range(len(self.nodes)-1):
+            node = self.nodes[i]
+            for e in node.ein:  cons[i][e] = +1
+            for e in node.eout: cons[i][e] = -1
+
+        for i, e in enumerate(self.elements):
+            if e.etype == 'r':
+                cond[i][i] = 1/e.r
+
+        _left = np.matmul(cons, cond)
+        left = np.matmul(_left, np.transpose(cons))
+
+        print(f'A = {cons}')
+        print(f'Y = {cond}')
+        print(f'_left = A * Y =\n{_left}')
+        print(f'left = A * Y * AT =\n{left}')
+
+        for i, e in enumerate(self.elements):
+            if e.etype == 'i':
+                csrc[i][0] = e.i
+        for i, e in enumerate(self.elements):
+            if e.etype == 'u':
+                vsrc[i][0] = e.u
+
+        _right = csrc + np.matmul(cond, vsrc)
+        right = np.matmul(-cons, _right)
+        print(f'_right: J + Y * E =\n{_right}')
+        print(f'right: -A * (J + Y * E) =\n{right}')
+
+        print(left)
+        print(right)
+        sol = np.linalg.solve(left, right)
+
+        print(sol)
+
         exit(0)
 
     def Log(self):
@@ -77,7 +115,7 @@ class Circuit:
         for i, e in enumerate(self.elements):
             print(f'    {e.etype}{i+1}\t{e}')
         print('Nodes:')
-        for i, e in enumerate(self.elements):
+        for i, e in enumerate(self.nodes):
             print(f'    {i+1}\t{e}')
 
 
@@ -88,6 +126,7 @@ if __name__ == "__main__":
     print('B E F O R E')
     print()
     circ.Log()
+    circ.Solve()
     print()
     print('A F T E R')
     print()
