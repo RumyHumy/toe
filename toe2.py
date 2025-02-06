@@ -17,7 +17,7 @@ class Element:
 class Circuit:
     elements    = []
     connections = []
-    # nodesCount x elementsCount x [0/+-1, el]
+    # nodesCount x elementsCount
 
     def __init__(self, textCirc):
         eData = [e.strip().split() for e in textCirc.split(',')]
@@ -25,7 +25,7 @@ class Circuit:
         nodeCount = 0
         for i, e in enumerate(eData):
             if len(e) != 4:
-                print(f'Wrong amout of arguments in element {i+1}.')
+                print(f'Wrong amount of arguments in element {i+1}.')
                 exit(1)
             try:
                 e[0] = int(e[0])
@@ -57,7 +57,42 @@ class Circuit:
             self.connections[e[1]-1][i] = +1
 
     def Solve(self):
-        pass
+        # A * Y * AT * Un = -A * (J + Y * E)
+        # A - cons, Y - cond, J - csrc, E - vsrc
+
+        cons = np.array(self.connections)
+        cons = cons[0:len(cons)-1]
+        cond = np.zeros([len(self.elements), len(self.elements)])
+        csrc = np.zeros([len(self.elements), 1])
+        vsrc = np.zeros([len(self.elements), 1])
+
+        for i, e in enumerate(self.elements):
+            if e.etype == 'r':
+                cond[i][i] = 1/e.r
+            elif e.etype == 'i':
+                csrc[i][0] = e.i
+            elif e.etype == 'u':
+                vsrc[i][0] = e.u
+
+        _left = np.matmul(cons, cond)
+        print(_left)
+        left = np.matmul(_left, np.transpose(cons))
+        _right = csrc + np.matmul(cond, vsrc)
+        right = np.matmul(-cons, _right)
+        sol = np.linalg.solve(left, right)
+
+        #print(f'A = {cons}')
+        #print(f'Y = {cond}')
+        #print(f'_left = A * Y =\n{_left}')
+        #print(f'left = A * Y * AT =\n{left}')
+        #print(f'_right: J + Y * E =\n{_right}')
+        #print(f'right: -A * (J + Y * E) =\n{right}')
+        #print(sol)
+
+        #for i, n in enumrate(self.nodes):
+        #    for e in n.ein:
+        #        pass
+        print(sol)
 
     def Log(self, cmat=False):
         print('Elements:')
@@ -67,7 +102,7 @@ class Circuit:
                 print(f'    Connections: {", ".join([str(j) for j in range(len(self.connections)) if self.connections[j][i] != 0])}')
         if cmat:
             print('Connection matrix: ')
-            print(self.connections)
+            print(str(self.connections).replace('],', '],\n'))
 
 if __name__ == "__main__":
     circ = Circuit(' '.join(sys.argv[1:]))

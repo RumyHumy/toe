@@ -60,10 +60,10 @@ class Circuit:
                 print(f'Type "{e[2]}" is undefined in element {i+1}.')
                 exit(1)
                 
-            self.nodes[e[0]-1].ein.append(i)
-            self.nodes[e[1]-1].eout.append(i)
+                self.nodes[e[0]-1].ein.append(i)
+                self.nodes[e[1]-1].eout.append(i)
 
-    def Solve(self): # Mooon
+        def Solve(self): # Mooon
 
         # A * Y * AT * Un = -A * (J + Y * E)
         # A - cons, Y - cond, J - csrc, E - vsrc
