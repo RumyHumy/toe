@@ -81,17 +81,6 @@ class Circuit:
         right = np.matmul(-cons, _right)
         sol = np.linalg.solve(left, right)
 
-        #print(f'A = {cons}')
-        #print(f'Y = {cond}')
-        #print(f'_left = A * Y =\n{_left}')
-        #print(f'left = A * Y * AT =\n{left}')
-        #print(f'_right: J + Y * E =\n{_right}')
-        #print(f'right: -A * (J + Y * E) =\n{right}')
-        #print(sol)
-
-        #for i, n in enumrate(self.nodes):
-        #    for e in n.ein:
-        #        pass
         print(sol)
 
     def Log(self, cmat=False):
