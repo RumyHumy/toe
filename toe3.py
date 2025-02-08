@@ -31,9 +31,6 @@ if __name__ == "__main__":
             vVec[i] = e[3]
         elif e[2] == 'r':
             gVec[i] = 1/e[3]
-        else:
-            print(f'Type "{e[2]}" is undefined in element {i+1}.')
-            exit(1)
         connections[e[0]-1][i] = -1
         connections[e[1]-1][i] = +1
 
@@ -47,20 +44,43 @@ if __name__ == "__main__":
     vsrc = np.array(vVec)
 
     # R E P L A C E   V - S O U R C E S
-    print(vsrc)
-    print(cons)
-    for i in range(nCount):
-        if vsrc[i] != 0:
-            np.append(cons, [0]*nCount, axis=0)
-            np.append(cons, [0]*eCount, axis=1)
-            np.append(cons, [0]*eCount, axis=1)
-    print(cons)
-    exit()
 
-    condd = np.diag(gVec)
+    for i in range(cons.shape[1]):
+        if vsrc[i] == 0:
+            continue
 
+        csrc[i] = vsrc[i]
+        vsrc[i] = 0
+
+        cons = np.concatenate((cons, np.zeros((1, cons.shape[1]))), axis=0)
+        cons = np.concatenate((cons, np.zeros((cons.shape[0], 2))), axis=1)
+        csrc = np.concatenate((csrc, [ 0,  0]))
+        vsrc = np.concatenate((vsrc, [ 0,  0]))
+        cond = np.concatenate((cond, [-1, +1]))
+
+        srcNode, dstNode = None, None
+        for j in range(cons.shape[0]):
+            if cons[j][i] == +1:
+                cons[j][i] = 0
+                dstNode = j
+            elif cons[j][i] == -1:
+                srcNode = j
+        
+        cons[dstNode][i] =  0
+        cons[srcNode][i] = +1
+        cons[dstNode][cons.shape[1]-2] = +1
+        cons[srcNode][cons.shape[1]-1] = -1
+        cons[cons.shape[0]-1][cons.shape[1]-1] = +1
+        cons[cons.shape[0]-1][cons.shape[1]-2] = -1
+
+    # C O N S T R U C T   L I N E A R
+
+    condd = np.diag(cond)
     left = cons @ condd @ np.transpose(cons)
     right = -cons @ (csrc + condd @ vsrc)
+
+
+    
     sol = np.linalg.solve(left, right)
 
     print(sol)
