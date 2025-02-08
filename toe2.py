@@ -103,4 +103,4 @@ if __name__ == "__main__":
     print()
     print('A F T E R')
     print()
-    circ.Log()
+    circ.Log(cmat=True)
